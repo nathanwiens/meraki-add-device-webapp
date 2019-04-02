@@ -1,0 +1,85 @@
+<html>
+  <head>
+  	<title>Meraki Device Provisioning</title>
+  </head>
+  <style>
+  body { font-family: arial; }
+  h1 { font-size: 18pt; color: #6FB73A; }
+  </style>
+<body>
+<img src="/static/logo.png" width="300" />
+<h1>Meraki Device Provisioning</h1>
+	<p>Instructions:</p>
+	<ul>
+		<li>Make sure to select the correct Network</li>
+		<li>Serial Numbers can be found on the box or on the bottom/back of the device</li>
+		<li>For best results with barcode scanner, set the scanner to add a "tab" suffix</li>
+		<li>The first Serial Number field is required. All others are optional</li>
+		<li>Serial Numbers must be in format "Q2XX-XXXX-XXXX"</li>
+	</ul>
+    <form action="" method="post" novalidate>
+        {{ form.hidden_tag() }}
+        <p>
+            {{ form.networkField.label }}: 
+            {{ form.networkField() }}
+        </p>
+        <p>
+            {{ form.serialField1.label }}
+            {{ form.serialField1(size=20, maxlength = 14) }}
+            {% for error in form.serialField1.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>
+            {{ form.serialField2.label }}
+            {{ form.serialField2(size=20, maxlength = 14) }}
+            {% for error in form.serialField2.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>
+            {{ form.serialField3.label }}
+            {{ form.serialField3(size=20, maxlength = 14) }}
+            {% for error in form.serialField3.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>
+            {{ form.serialField4.label }}
+            {{ form.serialField4(size=20, maxlength = 14) }}
+            {% for error in form.serialField4.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>
+            {{ form.serialField5.label }}
+            {{ form.serialField5(size=20, maxlength = 14) }}
+            {% for error in form.serialField5.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+        </p>
+<p>
+            {{ form.serialField6.label }}
+            {{ form.serialField6(size=20, maxlength = 14) }}
+            {% for error in form.serialField6.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+        </p>
+<p>
+            {{ form.serialField7.label }}
+            {{ form.serialField7(size=20, maxlength = 14) }}
+            {% for error in form.serialField7.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+        </p>
+<p>
+            {{ form.serialField8.label }}
+            {{ form.serialField8(size=20, maxlength = 14) }}
+            {% for error in form.serialField8.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>{{ form.submitField() }}</p>
+    </form>
+</body>
+</html>

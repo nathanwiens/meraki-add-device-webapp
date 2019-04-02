@@ -1,0 +1,26 @@
+<html>
+  <head>
+  	<title>Meraki Device Provisioning</title>
+  </head>
+  <style>
+  body { font-family: arial; }
+  h1 { font-size: 14pt; }
+  </style>
+<body>
+<img src="/static/logo.png" width="300" />
+<h1>Meraki Device Provisioning</h1>
+	<hr />
+	{% with messages = get_flashed_messages() %}
+    {% if messages %}
+        {% for message in messages %}
+        <p><span style="color: red;">{{ message }}</span></p>
+        {% endfor %}
+    {% endif %}
+    {% endwith %}
+	<hr />
+    <form action="/" method="get">
+    <input type="submit" value="Back" 
+         name="Back" id="frm1_submit" />
+</form>
+</body>
+</html>
