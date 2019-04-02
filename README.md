@@ -18,4 +18,4 @@ export FLASK_APP=add_device_webapp.py
 flask run --host=0.0.0.0
 ```
 
-![alt text](https://raw.githubusercontent.com/nathanwiens/meraki-add-device-webapp/master/webapp.png)
+![alt text](https://raw.githubusercontent.com/nathanwiens/meraki-add-device-webapp/master/static/webapp.png)
