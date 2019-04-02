@@ -1,5 +1,5 @@
-# Meraki Add Device Webapp
-Webapp to allow users to add Meraki Devices to Meraki Networks
+# Meraki Add Device Web App
+Web App to allow users to add Meraki Devices to Meraki Networks
 
 INSTALL AND RUN INSTRUCTIONS
 
