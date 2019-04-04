@@ -43,8 +43,8 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, SelectField, SubmitField, validators
 
 #CHANGE THESE TO MATCH DESIRED MERAKI ORGANIZATION
-apikey = '5730764fc976e5ec945f1bbacfc155e5aee1638a'
-organizationid = '652812'
+apikey = 'CHANGE_ME'
+organizationid = 'CHANGE_ME'
 
 #BUILD FORM FIELDS AND POPULATE DROPDOWN 
 class AddProvisionForm(FlaskForm):
