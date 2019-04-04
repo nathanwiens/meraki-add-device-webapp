@@ -10,11 +10,10 @@
 <img src="/static/logo.png" width="300" />
 <h1>Meraki Device Provisioning</h1>
 	<p>Navigation:<br />
-	<strong>Add Device(s) to Existing Network</strong>  | <a href="/createnetwork">Create New Network</a></p>
+	<a href="/">Add Device(s) to Existing Network</a>  | <strong>Create New Network</strong></p>
 	
 	<p>Instructions:</p>
 	<ul>
-		<li>Make sure to select the correct Network</li>
 		<li>Serial Numbers can be found on the box or on the bottom/back of the device</li>
 		<li>For best results with barcode scanner, set the scanner to add a "tab" suffix</li>
 		<li>The first Serial Number field is required. All others are optional</li>
@@ -23,9 +22,16 @@
     <form action="" method="post" novalidate>
         {{ form.hidden_tag() }}
         <p>
-            {{ form.networkField.label }}: 
-            {{ form.networkField() }}
-            {% for error in form.networkField.errors %}
+            {{ form.networkTextField.label }}: 
+            {{ form.networkTextField() }}
+            {% for error in form.networkTextField.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>
+            {{ form.templateField.label }}: 
+            {{ form.templateField() }}
+            {% for error in form.templateField.errors %}
             <span style="color: red;">[{{ error }}]</span>
             {% endfor %}
         </p>

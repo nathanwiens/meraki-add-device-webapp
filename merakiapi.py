@@ -1313,8 +1313,7 @@ def bindtotemplate(apikey, networkid, templateid, autobind='false', suppressprin
         'Content-Type': 'application/json'
     }
     postdata = {
-        'configTemplateId': format(str(templateid)),
-        'autoBind': format(str(autobind))
+        'configTemplateId': format(str(templateid))
     }
     dashboard = requests.post(posturl, data=json.dumps(postdata), headers=headers)
     #

@@ -9,6 +9,9 @@
 <body>
 <img src="/static/logo.png" width="300" />
 <h1>Meraki Device Provisioning</h1>
+	<p>Navigation:<br />
+	<a href="/">Add Device(s) to Existing Network</a>  | <a href="/createnetwork">Create New Network</a><p>
+	
 	<hr />
 	{% with messages = get_flashed_messages() %}
     {% if messages %}
@@ -20,7 +23,7 @@
 	<hr />
     <form action="/" method="get">
     <input type="submit" value="Back" 
-         name="Back" id="frm1_submit" />
+         name="Home" id="frm1_submit" />
 </form>
 </body>
 </html>
