@@ -22,6 +22,7 @@ flask run --host=0.0.0.0
 4. Open http://127.0.0.1:5000 in a web browser
 
 
-Here's a screenshot to show what the app looks like:
+Here are screenshots to show what the app looks like:
 
-![alt text](https://raw.githubusercontent.com/nathanwiens/meraki-add-device-webapp/master/static/webapp.png)
+![alt text](https://raw.githubusercontent.com/nathanwiens/meraki-add-device-webapp/master/static/webapp1.png)
+![alt text](https://raw.githubusercontent.com/nathanwiens/meraki-add-device-webapp/master/static/webapp2.png)
