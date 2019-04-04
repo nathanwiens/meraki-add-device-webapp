@@ -78,7 +78,7 @@ class AddProvisionForm(FlaskForm):
 class CreateProvisionForm(FlaskForm):
 
     #NETWORK CREATE FIELD
-    networkTextField = StringField('New Network Name: *', [validators.InputRequired()])
+    networkTextField = StringField('New Network Name*:&nbsp;', [validators.InputRequired()])
     
     #TEMPLATE DROPDOWN
     templates = merakiapi.gettemplates(apikey, organizationid)
@@ -94,7 +94,7 @@ class CreateProvisionForm(FlaskForm):
         cleantemplates.append([template_id,template_name])
     cleantemplates.sort(key=lambda x:x[1])
     cleantemplates.insert(0, ["", '* No Template'])
-    templateField = SelectField(u'Template to bind to: *', choices = cleantemplates)
+    templateField = SelectField(u'Template to bind to*:&nbsp;', choices = cleantemplates)
 
     #SERIAL NUMBER FIELDS
     serialField1 = StringField('Serial Number 1*:&nbsp;', [validators.InputRequired(), validators.Length(min=14, max=14, message='Invalid format. Must be Q2XX-XXXX-XXXX')])
