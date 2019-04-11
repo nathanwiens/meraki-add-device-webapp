@@ -2158,10 +2158,14 @@ def updatenetwork(apikey, networkid, name, tz, tags, suppressprint=False):
     return result
 
 
-def updatedevice(apikey, networkid, sn, name, tags, lat, lng, address, suppressprint=False):
-
+# Update the attributes of a device
+# https://api.meraki.com/api_docs#update-the-attributes-of-a-device
+def updatedevice(apikey, networkid, serial, name=None, tags=None, lat=None,
+                 lng=None, address=None, move=None, suppressprint=False):
+    # move needs to be str and not boolean 'true' or 'false' to work
     calltype = 'Device'
-    posturl = '{0}/networks/{1}/devices/{2}'.format(str(base_url), str(networkid), str(sn))
+    posturl = '{0}/networks/{1}/devices/{2}'.format(
+        str(base_url), str(networkid), str(serial))
     headers = {
         'x-cisco-meraki-api-key': format(str(apikey)),
         'Content-Type': 'application/json'
@@ -2169,28 +2173,33 @@ def updatedevice(apikey, networkid, sn, name, tags, lat, lng, address, suppressp
 
     putdata = {}
 
-    if name:
+    if name is not None:
         putdata['name'] = name
 
-    if tags:
+    if tags is not None:
         putdata['tags'] = __listtotag(tags)
 
     if lat and not lng:
-        raise ValueError('If latitude is entered a longitude value must also be entered')
+        raise ValueError('If latitude is entered a longitude '
+                         'value must also be entered')
     elif lng and not lat:
-        raise ValueError('If longitude is entered a latitude value must also be entered')
-    elif lat and lng:
+        raise ValueError('If longitude is entered a latitude '
+                         'value must also be entered')
+    else:
         putdata['lat'] = lat
         putdata['lng'] = lng
 
-    if address:
+    if address is not None:
         putdata['address'] = address
 
-    dashboard = requests.put(posturl, data=json.dumps(putdata), headers=headers)
-    #
+    if move:
+        putdata['moveMapMarker'] = move
+
+    dashboard = requests.put(
+        posturl, data=json.dumps(putdata), headers=headers)
     # Call return handler function to parse Dashboard response
-    #
-    result = __returnhandler(dashboard.status_code, dashboard.text, calltype, suppressprint)
+    result = __returnhandler(
+        dashboard.status_code, dashboard.text, calltype, suppressprint)
     return result
 
 

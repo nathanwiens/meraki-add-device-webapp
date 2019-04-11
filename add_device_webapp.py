@@ -40,14 +40,17 @@
 import merakiapi
 from flask import Flask, render_template, redirect, flash, Markup
 from flask_wtf import FlaskForm
-from wtforms import StringField, SelectField, SubmitField, validators
+from wtforms import StringField, SelectField, SubmitField, TextAreaField, validators
 
 #CHANGE THESE TO MATCH DESIRED MERAKI ORGANIZATION
-apikey = 'CHANGE_ME'
-organizationid = 'CHANGE_ME'
+apikey = 'a98949c074ef3976a27128c9c6e4922e9c5e4c7c'
+organizationid = '652812'
 
 #BUILD FORM FIELDS AND POPULATE DROPDOWN 
 class AddProvisionForm(FlaskForm):
+    #ADDRESS FIELD
+    addressField = TextAreaField('Street Address:&nbsp;&nbsp;', [validators.Optional(), validators.length(max=200)])
+    
     #SERIAL NUMBER FIELDS
     serialField1 = StringField('Serial Number 1*:&nbsp;', [validators.InputRequired(), validators.Length(min=14, max=14, message='Invalid format. Must be Q2XX-XXXX-XXXX')])
     serialField2 = StringField('Serial Number 2:&nbsp;&nbsp;', [validators.Optional(), validators.Length(min=14, max=14, message='Invalid format. Must be Q2XX-XXXX-XXXX')])
@@ -57,6 +60,16 @@ class AddProvisionForm(FlaskForm):
     serialField6 = StringField('Serial Number 6:&nbsp;&nbsp;', [validators.Optional(), validators.Length(min=14, max=14, message='Invalid format. Must be Q2XX-XXXX-XXXX')])
     serialField7 = StringField('Serial Number 7:&nbsp;&nbsp;', [validators.Optional(), validators.Length(min=14, max=14, message='Invalid format. Must be Q2XX-XXXX-XXXX')])
     serialField8 = StringField('Serial Number 8:&nbsp;&nbsp;')
+        
+    nameField1 = StringField('Device Name:&nbsp;&nbsp;', [validators.Optional()])
+    nameField2 = StringField('Device Name:&nbsp;&nbsp;', [validators.Optional()])
+    nameField3 = StringField('Device Name:&nbsp;&nbsp;', [validators.Optional()])
+    nameField4 = StringField('Device Name:&nbsp;&nbsp;', [validators.Optional()])
+    nameField5 = StringField('Device Name:&nbsp;&nbsp;', [validators.Optional()])
+    nameField6 = StringField('Device Name:&nbsp;&nbsp;', [validators.Optional()])
+    nameField7 = StringField('Device Name:&nbsp;&nbsp;', [validators.Optional()])
+    nameField8 = StringField('Device Name:&nbsp;&nbsp;', [validators.Optional()])
+    
     submitField = SubmitField('Submit')
       
     #NETWORK DROPDOWN
@@ -76,6 +89,8 @@ class AddProvisionForm(FlaskForm):
     networkField = SelectField(u'Network Name', choices = cleannetworks)
 
 class CreateProvisionForm(FlaskForm):
+    #ADDRESS FIELD
+    addressField = TextAreaField('Street Address:&nbsp;&nbsp;', [validators.Optional(), validators.length(max=200)])
 
     #NETWORK CREATE FIELD
     networkTextField = StringField('New Network Name*', [validators.InputRequired()])
@@ -105,6 +120,16 @@ class CreateProvisionForm(FlaskForm):
     serialField6 = StringField('Serial Number 6:&nbsp;&nbsp;', [validators.Optional(), validators.Length(min=14, max=14, message='Invalid format. Must be Q2XX-XXXX-XXXX')])
     serialField7 = StringField('Serial Number 7:&nbsp;&nbsp;', [validators.Optional(), validators.Length(min=14, max=14, message='Invalid format. Must be Q2XX-XXXX-XXXX')])
     serialField8 = StringField('Serial Number 8:&nbsp;&nbsp;')
+    
+    nameField1 = StringField('Device Name:&nbsp;&nbsp;', [validators.Optional()])
+    nameField2 = StringField('Device Name:&nbsp;&nbsp;', [validators.Optional()])
+    nameField3 = StringField('Device Name:&nbsp;&nbsp;', [validators.Optional()])
+    nameField4 = StringField('Device Name:&nbsp;&nbsp;', [validators.Optional()])
+    nameField5 = StringField('Device Name:&nbsp;&nbsp;', [validators.Optional()])
+    nameField6 = StringField('Device Name:&nbsp;&nbsp;', [validators.Optional()])
+    nameField7 = StringField('Device Name:&nbsp;&nbsp;', [validators.Optional()])
+    nameField8 = StringField('Device Name:&nbsp;&nbsp;', [validators.Optional()])
+    
     submitField = SubmitField('Submit')
 
 #MAIN PROGRAM
@@ -117,9 +142,10 @@ def provision():
     if form.validate_on_submit():
         message = []
         postSerials = []
+        postNames = []
         
         postNetwork = form.networkField.data
-        #print(postNetwork)
+        print(postNetwork)
         
         #BUILD ARRAY OF SERIAL NUMBERS FROM FORM
         postSerials.append(form.serialField1.data)
@@ -131,10 +157,18 @@ def provision():
         postSerials.append(form.serialField7.data)
         postSerials.append(form.serialField8.data)
         postSerials = [element.upper() for element in postSerials]; postSerials
+        
+        postNames.append(form.nameField1.data)
+        postNames.append(form.nameField2.data)
+        postNames.append(form.nameField3.data)
+        postNames.append(form.nameField4.data)
+        postNames.append(form.nameField5.data)
+        postNames.append(form.nameField6.data)
+        postNames.append(form.nameField7.data)
+        postNames.append(form.nameField8.data)
         #print(postSerials)
         
-        for serial in postSerials:
-            serial.upper()
+        for i,serial in enumerate(postSerials):
             #SKIP EMPTY SERIAL NUMBER TEXT BOXES
             if serial is '':
                 continue
@@ -144,6 +178,8 @@ def provision():
             else:
                 result = merakiapi.adddevtonet(apikey, postNetwork, serial)
                 if result == None:
+                    #SET ADDRESS AND NAME
+                    merakiapi.updatedevice(apikey, postNetwork, serial, name=postNames[i], address=form.addressField.data, move='true')
                     #API RETURNS EMPTY ON SUCCESS, POPULATE SUCCESS MESSAGE MANUALLY
                     netname = merakiapi.getnetworkdetail(apikey, postNetwork)
                     message = Markup('Device with serial <strong>{}</strong> successfully added to Network: <strong>{}</strong>'.format(serial, netname['name']))
@@ -163,6 +199,7 @@ def provisionNetwork():
     if form.validate_on_submit():
         message = []
         postSerials = []
+        postNames = []
         
         postNetwork = form.networkTextField.data
         #print(postNetwork)
@@ -179,6 +216,15 @@ def provisionNetwork():
         postSerials.append(form.serialField7.data)
         postSerials.append(form.serialField8.data)
         postSerials = [element.upper() for element in postSerials]; postSerials
+        
+        postNames.append(form.nameField1.data)
+        postNames.append(form.nameField2.data)
+        postNames.append(form.nameField3.data)
+        postNames.append(form.nameField4.data)
+        postNames.append(form.nameField5.data)
+        postNames.append(form.nameField6.data)
+        postNames.append(form.nameField7.data)
+        postNames.append(form.nameField8.data)
 
         #CREATE NETWORK AND BIND TO TEMPLATE
         result = merakiapi.addnetwork(apikey, organizationid, postNetwork, "appliance switch wireless", "", "America/Los_Angeles")
@@ -199,8 +245,7 @@ def provisionNetwork():
             flash(message)
 
         #ADD SERIALS TO NETWORK
-        for serial in postSerials:
-            serial.upper()
+        for i,serial in enumerate(postSerials):
             #SKIP EMPTY SERIAL NUMBER TEXT BOXES
             if serial is '':
                 continue
@@ -210,6 +255,8 @@ def provisionNetwork():
             else:
                 result = merakiapi.adddevtonet(apikey, newnetwork, serial)
                 if result == None:
+                    #SET ADDRESS AND NAME
+                    merakiapi.updatedevice(apikey, newnetwork, serial, name=postNames[i], address=form.addressField.data, move='true')
                     #API RETURNS EMPTY ON SUCCESS, POPULATE SUCCESS MESSAGE MANUALLY
                     netname = merakiapi.getnetworkdetail(apikey, newnetwork)
                     message = Markup('Device with serial <strong>{}</strong> successfully added to Network: <strong>{}</strong>'.format(serial, netname['name']))
