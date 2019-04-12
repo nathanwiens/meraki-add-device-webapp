@@ -37,14 +37,14 @@
 #flask run --host=0.0.0.0
 #
 
-import merakiapi
+import merakiapi, config
 from flask import Flask, render_template, redirect, flash, Markup
 from flask_wtf import FlaskForm
 from wtforms import StringField, SelectField, SubmitField, TextAreaField, validators
 
 #CHANGE THESE TO MATCH DESIRED MERAKI ORGANIZATION
-apikey = 'CHANGEME'
-organizationid = 'CHANGEME'
+apikey = config.apikey
+organizationid = config.organizationid
 
 #BUILD FORM FIELDS AND POPULATE DROPDOWN 
 class AddProvisionForm(FlaskForm):
@@ -130,6 +130,35 @@ class CreateProvisionForm(FlaskForm):
     nameField7 = StringField('Device Name:&nbsp;&nbsp;', [validators.Optional()])
     nameField8 = StringField('Device Name:&nbsp;&nbsp;', [validators.Optional()])
     
+    submitField = SubmitField('Submit')
+
+class ReplaceDevice(FlaskForm):
+	#NETWORK DROPDOWN
+    networks = merakiapi.getnetworklist(apikey, organizationid)
+    cleannetworks = []
+    for network in networks:
+        for key, value in network.items():
+            if key == 'id':
+                net_id = value
+            elif key == 'name':
+                net_name = value
+            else:
+                continue
+        cleannetworks.append([net_id,net_name])
+    cleannetworks.sort(key=lambda x:x[1])
+    cleannetworks.insert(0, [None, '* Choose...'])
+    networkField = SelectField(u'Network Name', choices = cleannetworks)
+	
+	#SERIAL NUMBER FIELDS
+    oldMX = StringField('MX to Replace:&nbsp;&nbsp;', [validators.Optional(), validators.Length(min=14, max=14, message='Invalid format. Must be Q2XX-XXXX-XXXX')])
+    newMX = StringField('New MX:&nbsp;&nbsp;', [validators.Optional(), validators.Length(min=14, max=14, message='Invalid format. Must be Q2XX-XXXX-XXXX')])
+	
+    oldSwitch = StringField('Switch to Replace:&nbsp;&nbsp;', [validators.Optional(), validators.Length(min=14, max=14, message='Invalid format. Must be Q2XX-XXXX-XXXX')])
+    newSwitch = StringField('New Switch:&nbsp;&nbsp;', [validators.Optional(), validators.Length(min=14, max=14, message='Invalid format. Must be Q2XX-XXXX-XXXX')])
+	
+    oldAP = StringField('AP to Replace:&nbsp;&nbsp;', [validators.Optional(), validators.Length(min=14, max=14, message='Invalid format. Must be Q2XX-XXXX-XXXX')])
+    newAP = StringField('New AP:&nbsp;&nbsp;', [validators.Optional(), validators.Length(min=14, max=14, message='Invalid format. Must be Q2XX-XXXX-XXXX')])
+	
     submitField = SubmitField('Submit')
 
 #MAIN PROGRAM
@@ -269,6 +298,100 @@ def provisionNetwork():
             flash(message)
         return redirect('/submit')
     return render_template('indextemplate.html', title='Meraki Device Provisioning', form=form)
+
+@app.route('/replace', methods=['GET', 'POST'])
+def replaceForm():
+    form = ReplaceDevice()
+    if form.validate_on_submit():
+        message = []
+        
+        postNetwork = form.networkField.data
+        netname = merakiapi.getnetworkdetail(apikey, postNetwork)
+        oldMX = form.oldMX.data
+        newMX = form.newMX.data
+        oldSwitch = form.oldSwitch.data
+        newSwitch = form.newSwitch.data
+        oldAP = form.oldAP.data
+        newAP = form.newAP.data
+        
+        if oldMX is not '':
+            oldconfig = merakiapi.getdevicedetail(apikey, postNetwork, oldMX)
+            merakiapi.updatedevice(apikey, postNetwork, newMX, name=oldconfig['name'], tags=oldconfig['tags'], lat=oldconfig['lat'],
+                 lng=oldconfig['lng'], address=oldconfig['address'], move='true')
+            result = merakiapi.removedevfromnet(apikey, postNetwork, oldMX)
+            if result == None:
+                message = Markup('MX with serial <strong>{}</strong> successfully deleted from Network: <strong>{}</strong>'.format(oldMX, netname['name']))
+            merakiapi.claim(apikey, organizationid, serial=newMX)
+            result = merakiapi.adddevtonet(apikey, postNetwork, newMX)
+            if result == None:
+                message = Markup('MX with serial <strong>{}</strong> successfully added to Network: <strong>{}</strong>'.format(newMX, netname['name']))
+        
+        if oldSwitch is not '':
+            #ADD NEW SWITCH TO NETWORK
+            merakiapi.claim(apikey, organizationid, serial=newSwitch)
+            result = merakiapi.adddevtonet(apikey, postNetwork, newSwitch)
+            oldconfig = merakiapi.getdevicedetail(apikey, postNetwork, oldSwitch)
+            merakiapi.updatedevice(apikey, postNetwork, newSwitch, name=oldconfig['name'], tags=oldconfig['tags'], lat=oldconfig['lat'],
+                 lng=oldconfig['lng'], address=oldconfig['address'], move='true')
+            if result == None:
+                message = Markup('Switch with serial <strong>{}</strong> successfully added to Network: <strong>{}</strong>'.format(newSwitch, netname['name']))
+                #CLONE L2 PORT CONFIGS
+                if '24' in oldconfig['model']:
+                    numports = 30
+                elif '48' in oldconfig['model']:
+                    numports = 54
+                elif '16' in oldconfig['model']:
+                    numports = 22
+                elif '32' in oldconfig['model']:
+                    numports = 38
+                for port in range(1, numports):
+                    config = merakiapi.getswitchportdetail(apikey, oldSwitch, port)
+                    print(config)
+                    # Clone corresponding new switch
+                    # Tags needed to be input as a list
+                    #if config['tags'] is not '':
+                    #    tags = config['tags'].split()
+                    #else:
+                    tags = []
+
+					# Access type port
+                    if config['type'] == 'access':
+                        merakiapi.updateswitchport(apikey, newSwitch, port,
+                            name=config['name'], tags=tags, enabled=config['enabled'],
+                            porttype=config['type'], vlan=config['vlan'], voicevlan=config['voiceVlan'],
+                            poe='true', isolation=config['isolationEnabled'], rstp=config['rstpEnabled'],
+                            stpguard=config['stpGuard'], accesspolicynum=config['accessPolicyNumber'])
+					# Trunk type port
+                    elif config['type'] == 'trunk':
+                        merakiapi.updateswitchport(apikey, newSwitch, port,
+                            name=config['name'], tags=tags, enabled=config['enabled'],
+                            porttype=config['type'], vlan=config['vlan'], allowedvlans=config['allowedVlans'],
+                            poe='true', isolation=config['isolationEnabled'], rstp=config['rstpEnabled'],
+                            stpguard=config['stpGuard'])
+            #404 MESSAGE FOR INVALID SERIAL IS BLANK, POPULATE ERROR MESSAGE MANUALLY
+            elif result == 'noserial':
+                message = Markup('Invalid serial <strong>{}</strong>'.format(serial))
+            else:
+                message = result
+            #REMOVE OLD SWITCH FROM NETWORK
+            merakiapi.removedevfromnet(apikey, postNetwork, oldSwitch)
+        
+        if oldAP is not '':
+            oldconfig = merakiapi.getdevicedetail(apikey, postNetwork, oldAP)
+            merakiapi.updatedevice(apikey, postNetwork, newAP, name=oldconfig['name'], tags=oldconfig['tags'], lat=oldconfig['lat'],
+                 lng=oldconfig['lng'], address=oldconfig['address'], move='true')
+            result = merakiapi.removedevfromnet(apikey, postNetwork, oldAP)
+            if result == None:
+                message = Markup('AP with serial <strong>{}</strong> successfully deleted from Network: <strong>{}</strong>'.format(oldMX, netname['name']))
+            merakiapi.claim(apikey, organizationid, serial=newAP)
+            result = merakiapi.adddevtonet(apikey, postNetwork, newAP)
+            if result == None:
+                message = Markup('AP with serial <strong>{}</strong> successfully added to Network: <strong>{}</strong>'.format(newMX, netname['name']))
+
+        #SEND MESSAGE TO SUBMIT PAGE
+        flash(message)
+        return redirect('/submit')
+    return render_template('replace.html', title='Meraki Device Provisioning', form=form)
 
 @app.route('/submit')
 def submit():

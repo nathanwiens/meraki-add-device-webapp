@@ -1348,16 +1348,7 @@ def claim(apikey, orgid, serial=None, licensekey=None, licensemode=None, orderid
         'x-cisco-meraki-api-key': format(str(apikey)),
         'Content-Type': 'application/json'
     }
-    x = 0
     postdata = {}
-    for x in [serial, licensekey, orderid]:
-        if x is None:
-            pass
-        else:
-            x += 1
-    if x > 1:
-        raise AttributeError('Mutiple identifiers passed, please pass only one of either serial number, license key, '
-                             'or order ID')
     if (licensekey is None and licensemode is not None) or (licensemode is None and licensekey is not None):
         raise AttributeError('If claiming a license key both license and licensemode attributes must be passed')
 
@@ -2251,8 +2242,10 @@ def updatessid(apikey, networkid, ssidnum, name, enabled, authmode, encryptionmo
     return result
 
 
-def updateswitchport(apikey, serialnum, portnum, name, tags, enabled, porttype, vlan, voicevlan, allowedvlans, poe,
-                     isolation, rstp, stpguard, accesspolicynum, suppressprint=False):
+def updateswitchport(apikey, serialnum, portnum, name=None, tags=None,
+                     enabled=None, porttype=None, vlan=None, voicevlan=None,
+                     allowedvlans=None, poe=None, isolation=None, rstp=None,
+                     stpguard=None, accesspolicynum=None, suppressprint=False):
 
     calltype = 'Switch Port'
     puturl = '{0}/devices/{1}/switchPorts/{2}'.format(str(base_url), str(serialnum), str(portnum))
