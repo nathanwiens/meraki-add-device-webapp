@@ -26,3 +26,4 @@ Here are screenshots to show what the app looks like:
 
 ![alt text](https://raw.githubusercontent.com/nathanwiens/meraki-add-device-webapp/master/static/webapp1.png)
 ![alt text](https://raw.githubusercontent.com/nathanwiens/meraki-add-device-webapp/master/static/webapp2.png)
+![alt text](https://raw.githubusercontent.com/nathanwiens/meraki-add-device-webapp/master/static/webapp3.png)
