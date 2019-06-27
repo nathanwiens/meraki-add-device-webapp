@@ -41,6 +41,8 @@ import merakiapi, config
 from flask import Flask, render_template, redirect, flash, Markup
 from flask_wtf import FlaskForm
 from wtforms import StringField, SelectField, SubmitField, TextAreaField, validators
+import datetime
+import re
 
 #CHANGE THESE TO MATCH DESIRED MERAKI ORGANIZATION
 apikey = config.apikey
@@ -97,6 +99,7 @@ class CreateProvisionForm(FlaskForm):
     
     #TEMPLATE DROPDOWN
     templates = merakiapi.gettemplates(apikey, organizationid)
+    print(templates)
     cleantemplates = []
     for template in templates:
         for key, value in template.items():
@@ -159,6 +162,11 @@ class ReplaceDevice(FlaskForm):
     oldAP = StringField('AP to Replace:&nbsp;&nbsp;', [validators.Optional(), validators.Length(min=14, max=14, message='Invalid format. Must be Q2XX-XXXX-XXXX')])
     newAP = StringField('New AP:&nbsp;&nbsp;', [validators.Optional(), validators.Length(min=14, max=14, message='Invalid format. Must be Q2XX-XXXX-XXXX')])
 	
+    submitField = SubmitField('Submit')
+    
+class MilesForm(FlaskForm):
+    #HTML FIELDS
+    queryField = StringField('Query:&nbsp;&nbsp;', [validators.InputRequired()])
     submitField = SubmitField('Submit')
 
 #MAIN PROGRAM
@@ -392,7 +400,183 @@ def replaceForm():
         flash(message)
         return redirect('/submit')
     return render_template('replace.html', title='Meraki Device Provisioning', form=form)
+    
+@app.route('/miles', methods=['GET', 'POST'])
+def miles():
+    form = MilesForm()
+    if form.validate_on_submit():
+
+        apikey = 'b085d5d5afd8d448948e1e9b35ee03a6d5db6543'
+        organizationid = '209700'
+
+        messages = []
+        
+        networks = merakiapi.getnetworklist(apikey, organizationid)
+        
+        query = form.queryField.data.lower()
+        
+        
+        workingquestion = ['how is ', 'how\'s ', 'hows ']
+        workingwords = [' working', ' doing', ' operating', ' performing']
+        
+        for word in workingwords:
+            if word in query:
+                for question in workingquestion:
+                    if question in query:
+                        part1 = query.split(question, 1)[1]
+                        netordev = part1.split(word, 1)[0]
+            
+                        for network in networks:
+                            if network['name'].lower() == netordev:
+                                netname = network['name']
+                                netid = network['id']
+                        
+                                result = merakiapi.getwhconnectionstats(apikey, netid, timespan=86400)
+                                messages.append(Markup("In the last day, <strong>{}</strong> had: ".format(netname)))
+                                messages.append(Markup("<strong>{}</strong> association failures".format(result['assoc'])))
+                                messages.append(Markup("<strong>{}</strong> authentication failures".format(result['auth'])))
+                                messages.append(Markup("<strong>{}</strong> DHCP failures".format(result['dhcp'])))
+                                messages.append(Markup("<strong>{}</strong> DNS failures".format(result['dns'])))
+                                messages.append(Markup("and <strong>{}</strong> successful connections".format(result['success'])))
+                                print(messages)
+                                continue
+
+        listclients = ['list clients for ', 'client list for ', 'list of clients for ', 'show me clients for', 'show me a list of clients for', 'show clients for ']
+
+        for word in listclients:
+            if word in query:
+                netordev = query.split(word, 1)[1]
+                for network in networks:
+                    if network['name'].lower() == netordev:
+                        netname = network['name']
+                        netid = network['id']
+                        clientcount = 0
+                        clients = merakiapi.getnetworkclients(apikey, netid, timespan=86400, perpage=100)
+                        messages.append(Markup("<table><th colspan=5><h3>Clients for {}</h3></th><tr><td><strong>Description</strong></td><td><strong>MAC Address</strong></td><td><strong>IP Address</strong></td><td><strong>VLAN</strong></td><td><strong>SSID</strong></td></tr>".format(str(netname))))
+                        for client in clients:
+                            clientcount +=1
+                            messages.append(Markup("<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>".format(str(client['description']), str(client['mac']), str(client['ip']), str(client['vlan']), str(client['ssid']))))
+                        messages.append(Markup("<tr><td colspan=5><strong>Total: {}</strong></td></tr>".format(clientcount)))
+                        messages.append(Markup("</table>"))
+                        continue
+                        
+        clientevents = ['list client events for ', 'client events for ', 'list events for client ', 'list events for ', 'get client events for ', 'show client events for ']
+
+        for word in clientevents:
+            if word in query:
+                c = query.split(word, 1)[1]
+                r = re.compile('..:..:..:..:..:..')
+                netid = "L_584342051651325437"
+                clientmac = ""
+                if r.match(c) is not None:
+                    client = merakiapi.getclientdetail(apikey, netid, c)
+                    clientmac = c
+                else:
+                    clients = merakiapi.getnetworkclients(apikey, netid, timespan=86400, perpage=100)
+                    for client in clients:
+                        if str(client['description']).lower() == c:
+                            print("MATCHED! Client {} is {}".format(str(client['description']), str(client['mac'])))
+                            clientmac = client['mac']
+                            client = merakiapi.getclientdetail(apikey, netid, clientmac)
+                            break
+                print("Client: {}".format(clientmac))
+                
+                lastweek = (datetime.datetime.now() - datetime.timedelta(days=1)).timestamp()
+                print(lastweek)
+                
+                events = merakiapi.getclientevents(apikey, netid, clientmac, lastweek)
+                print(events)
+                
+                messages.append(Markup("<table><th colspan=3><h3>Events for Client {}</h3></th><tr><td><strong>Network Device</strong></td><td><strong>Occurred At</strong></td><td><strong>Event</strong></td></tr>".format(str(client['description']))))
+                for event in reversed(events):
+                    messages.append(Markup("<tr><td>{}</td><td>{}</td><td>{}</td></tr>".format(str(event['deviceSerial']), datetime.datetime.utcfromtimestamp(event['occurredAt']).strftime('%Y-%m-%d %H:%M:%S'), str(event['type']))))
+                messages.append(Markup("</table>"))
+                continue
+                
+        ssidclients = ['how many clients on ssid ', 'list clients on ssid ', 'get clients on ssid ', 'show clients on ssid ', 'list clients for ssid ', 'get clients for ssid ', 'show clients for ssid ']
+
+        for word in ssidclients:
+            if word in query:
+                ssid = query.split(word, 1)[1]
+                netid = "L_584342051651325437"
+                clientcount = 0
+                clients = merakiapi.getnetworkclients(apikey, netid, timespan=86400, perpage=100)
+                
+                messages.append(Markup("<table><th colspan=6><h3>Clients for SSID: {}</h3></th><tr><td><strong>Description</strong></td><td><strong>MAC Address</strong></td><td><strong>IP Address</strong></td><td><strong>VLAN</strong></td><td><strong>User</strong></td></tr>".format(str(ssid))))
+                for client in clients:
+                    if ssid in str(client['ssid']):
+                        clientcount +=1
+                        messages.append(Markup("<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>".format(str(client['description']), str(client['mac']), str(client['ip']), str(client['vlan']), str(client['user']))))
+                messages.append(Markup("<tr><td colspan=5><strong>Total: {}</strong></td></tr>".format(clientcount)))
+                messages.append(Markup("</table>"))
+                continue
+                
+        vlanclients = ['list clients on vlan ', 'get clients on vlan ', 'show clients on vlan ', 'list clients for vlan ', 'get clients for vlan ']
+
+        for word in vlanclients:
+            if word in query:
+                vlan = query.split(word, 1)[1]
+                netid = "L_584342051651325437"
+                clientcount = 0
+                clients = merakiapi.getnetworkclients(apikey, netid, timespan=86400, perpage=100)
+                
+                messages.append(Markup("<table><th colspan=5><h3>Clients for VLAN: {}</h3></th><tr><td><strong>Description</strong></td><td><strong>MAC Address</strong></td><td><strong>IP Address</strong></td><td><strong>SSID</strong></td></tr>".format(str(vlan))))
+                for client in clients:
+                    if vlan in str(client['vlan']):
+                        clientcount +=1
+                        messages.append(Markup("<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>".format(str(client['description']), str(client['mac']), str(client['ip']), str(client['ssid']))))
+                messages.append(Markup("<tr><td colspan=4><strong>Total: {}</strong></td></tr>".format(clientcount)))
+                messages.append(Markup("</table>"))
+                continue
+                        
+        clientdetail = ['tell me about client ', 'tell me about ', 'show client details for ', 'show client ']
+
+        for word in clientdetail:
+            if word in query:
+                c = query.split(word, 1)[1]
+                r = re.compile('..:..:..:..:..:..')
+                netid = "L_584342051651325437"
+                clientmac = ""
+                if r.match(c) is not None:
+                    client = merakiapi.getclientdetail(apikey, netid, c)
+                    clientmac = c
+                else:
+                    clients = merakiapi.getnetworkclients(apikey, netid, timespan=86400, perpage=100)
+                    for client in clients:
+                        if str(client['description']).lower() == c:
+                            print("MATCHED! Client {} is {}".format(str(client['description']), str(client['mac'])))
+                            clientmac = client['mac']
+                            client = merakiapi.getclientdetail(apikey, netid, clientmac)
+                            break
+                    
+                if clientmac is "":
+                    print("No matching client found")
+                    messages.append(Markup("<h3>No matching client found for: {}</h3>".format(c)))
+                else:
+                    print("Client: {}".format(c))
+    
+                    messages.append(Markup("<table><th colspan='6'><h3>Client Details for {}</h3></th><tr><td><strong>Description</strong></td><td><strong>MAC Address</strong></td><td><strong>IP Address</strong></td><td><strong>VLAN</strong></td><td><strong>Manufacturer</strong></td><td><strong>SSID</strong></td></tr>".format(str(client['description']))))
+                    messages.append(Markup("<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>".format(str(client['description']), str(client['mac']), str(client['ip']), client['vlan'], str(client['manufacturer']), str(client['ssid']))))
+                    messages.append(Markup("</table>"))
+                    
+                    apps = merakiapi.getclienttraffichistory(apikey, netid, clientmac)
+                    
+                    messages.append(Markup("<table><th colspan='3'><h3>Top Applications for {}</h3></th><tr><td><strong>Application</strong></td><td><strong>Sent</strong></td><td><strong>Received</strong></td></tr>".format(str(client['description']))))
+                    unique = { each['application'] : each for each in apps }.values()
+                    for app in unique:
+                        messages.append(Markup("<tr><td>{}</td><td>{}</td><td>{}</td></tr>".format(str(app['application']), str(app['sent']), str(app['recv']))))
+                    messages.append(Markup("</table>"))
+                break
+        
+    	#SEND MESSAGE TO SUBMIT PAGE
+        for message in messages:
+            flash(message)
+        return redirect('/submit')
+    return render_template('miles.html', title='Meraki Miles', form=form)
 
 @app.route('/submit')
 def submit():
    return render_template('submit.html')
+
+if __name__ == '__main__':
+    app.run(debug=True,host='0.0.0.0')

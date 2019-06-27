@@ -1,6 +1,6 @@
 <html>
 <head>
-        <title>Meraki Device Provisioning</title>
+        <title>Meraki Miles</title>
         <link rel="stylesheet" href="/static/style.css">
         <link rel="shortcut icon" href="/static/favicon.ico" />
   <style>
@@ -12,6 +12,10 @@
   .addressfield {
     width: 500px;
         height: 75px;
+  }
+  .queryfield{
+    width: 500px;
+    height: 30px;
   }
   .serialfield {
         width: 300px;
@@ -43,20 +47,36 @@
         <div id="content">
 
         <img src="/static/logo.png" width="300" />
-        <div id="title"><h1>Meraki Device Provisioning</h1></div>
-	<hr />
-	{% with messages = get_flashed_messages() %}
-    {% if messages %}
-        {% for message in messages %}
-        <p><span style="color: green;">{{ message }}</span></p>
-        {% endfor %}
-    {% endif %}
-    {% endwith %}
-	<hr />
-    <form action="/" method="get">
-    <input type="submit" value="Back" 
-         name="Home" id="frm1_submit" />
-</form>
-</div>
+<h1>Meraki Miles</h1>
+	
+    <form action="" method="post" novalidate>
+        {{ form.hidden_tag() }}
+        <div class="queryfield">
+            {{ form.queryField.label }}
+            {{ form.queryField() }}
+            {% for error in form.queryField.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+        </div>
+        <div class="clear"></div><br/>
+        <div class="submitfield">{{ form.submitField() }}</div>
+    </form>
+    <div><h4>Suggested Queries</h4></div>
+    <div>
+    How is &lt;Network Name&gt; doing?<br/>
+    List clients for &lt;Network Name&gt;<br/>
+    Show clients on SSID &lt;SSID Name&gt;<br/>
+    Get clients on VLAN &lt;VLAN ID&gt;<br/>
+    Tell me about client &lt;Client MAC/Name&gt;<br/>
+    Client events for &lt;Client MAC/Name&gt;
+    </div>
+    <div><h4>Demo Data</h4></div>
+    <div>
+    Network: Parker LAN<br/>
+    Client: 38:53:9c:4b:70:06<br/>
+    Client: Nathan iPhone<br/>
+    SSID: sandstorm<br/>
+    VLAN: 810<br/>
+    </div>
 </body>
 </html>
