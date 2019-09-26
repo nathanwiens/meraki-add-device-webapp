@@ -1,8 +1,8 @@
 <html>
 <head>
-        <title>Meraki Device Provisioning</title>
-        <link rel="stylesheet" href="/static/style.css">
-        <link rel="shortcut icon" href="/static/favicon.ico" />
+	<title>Meraki PSK Groups Provisioning</title>
+	<link rel="stylesheet" href="/static/style.css">
+	<link rel="shortcut icon" href="/static/favicon.ico" />
   <style>
   h1 { font-size: 18pt; color: #6FB73A; }
   .networkfield {
@@ -14,14 +14,14 @@
         height: 75px;
   }
   .serialfield {
-        width: 300px;
+        width: 150px;
         height: 30px;
         float: left;
         clear: none;
   }
   .namefield {
         height: 30px;
-        width: 300px;
+        width: 200px;
         float: left;
         clear: none;
   }
@@ -43,19 +43,18 @@
         <div class="menuItem"><a href="/psk">PSK Groups</a></div>
         <div class="menuItem"><a href="/bulk">Bulk Change</a></div>
 	</div>
-        <div id="content">
+	<div id="content">
 
         <img src="/static/logo.png" width="300" />
-        <div id="title"><h1>Meraki Device Provisioning</h1></div>
-        <div id="instructions">	
+        <div id="title"><h1>Meraki PSK Groups</h1></div>
+	<div id="instructions">
 	<p>Instructions:</p>
 	<ul>
 		<li>Make sure to select the correct Network</li>
-		<li>Serial Numbers can be found on the box or on the bottom/back of the device</li>
-		<li>For best results with barcode scanner, set the scanner to add a "tab" suffix</li>
-		<li>Serial Numbers must be in format "Q2XX-XXXX-XXXX"</li>
+		<li>This form will only modify <strong>SSID number 6</strong></li>
 	</ul>
         </div>
+
     <form action="" method="post" novalidate>
         {{ form.hidden_tag() }}
         <div class="networkfield">
@@ -67,50 +66,38 @@
         </div>
         <div class="clear"></div>
         <div class="serialfield">
-            {{ form.oldMX.label }}
-            {{ form.oldMX(size=20, maxlength = 14) }}
-            {% for error in form.oldMX.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-            {% endfor %}
-        </div><div class="namefield">
-            {{ form.newMX.label }}
-            {{ form.newMX(size=25, maxlength = 25) }}
-            {% for error in form.newMX.errors %}
+            {{ form.pskname.label }}
+        </div>
+        <div class="namefield">
+            {{ form.pskname(size=20, maxlength = 14) }}
+            {% for error in form.pskname.errors %}
             <span style="color: red;">[{{ error }}]</span>
             {% endfor %}
         </div>
         <div class="clear"></div>
         <div class="serialfield">
-            {{ form.oldSwitch.label }}
-            {{ form.oldSwitch(size=20, maxlength = 14) }}
-            {% for error in form.oldSwitch.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-            {% endfor %}
-        </div><div class="namefield">
-            {{ form.newSwitch.label }}
-            {{ form.newSwitch(size=25, maxlength = 25) }}
-            {% for error in form.newSwitch.errors %}
+            {{ form.pskkey.label }}
+        </div>
+        <div class="namefield">
+            {{ form.pskkey(size=20, maxlength = 14) }}
+            {% for error in form.pskkey.errors %}
             <span style="color: red;">[{{ error }}]</span>
             {% endfor %}
         </div>
         <div class="clear"></div>
         <div class="serialfield">
-            {{ form.oldAP.label }}
-            {{ form.oldAP(size=20, maxlength = 14) }}
-            {% for error in form.oldAP.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-            {% endfor %}
-        </div><div class="namefield">
-            {{ form.newAP.label }}
-            {{ form.newAP(size=25, maxlength = 25) }}
-            {% for error in form.newAP.errors %}
+            {{ form.pskvlanid.label }}
+        </div>
+        <div class="namefield">
+            {{ form.pskvlanid(size=20, maxlength = 14) }}
+            {% for error in form.pskvlanid.errors %}
             <span style="color: red;">[{{ error }}]</span>
             {% endfor %}
         </div>
         <div class="clear"></div>
         <div class="submitfield">{{ form.submitField() }}</div>
     </form>
-  </div>
+    </div>
     <div class="clear"></div>
 	<div id="footer"><center>Copyright &copy; 2019-Present, Nathan Wiens (nathan@wiens.co)</center></div>
 </div>
