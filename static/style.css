@@ -42,7 +42,7 @@ td {
 	padding: 5px;
 }
 
-input {
+#submitfield {
 	line-height: 1.90476em;
     height: 28px;
     padding: 0px 4px;
@@ -96,6 +96,18 @@ a:active {
 #content {
 	background-color: #FFF;
 	font: 0.8125em Arial,sans-serif;
+	padding: 15px;
+	overflow: auto;
+	float: left;
+	min-width: 500px;
+	position: relative;
+	top: 0px;
+	left: 215px;
+}
+
+#footer {
+	background-color: #FFF;
+	font: 0.6125em Arial,sans-serif;
 	padding: 15px;
 	overflow: auto;
 	float: left;
