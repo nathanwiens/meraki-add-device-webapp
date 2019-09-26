@@ -24,5 +24,5 @@ flask run --host=0.0.0.0
 
 Here are screenshots to show what the app looks like:
 
-![alt text](https://raw.githubusercontent.com/nathanwiens/meraki-add-device-webapp/master/static/webapp1.png)
-![alt text](https://raw.githubusercontent.com/nathanwiens/meraki-add-device-webapp/master/static/webapp2.png)
+![alt text](https://github.com/nathanwiens/meraki-add-device-webapp/blob/master/webapp1.png)
+![alt text](https://github.com/nathanwiens/meraki-add-device-webapp/blob/master/webapp2.png)
