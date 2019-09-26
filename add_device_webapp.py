@@ -40,7 +40,7 @@
 import merakiapi, config
 from flask import Flask, render_template, redirect, flash, Markup
 from flask_wtf import FlaskForm
-from wtforms import StringField, SelectField, SubmitField, TextAreaField, validators
+from wtforms import StringField, SelectField, SubmitField, TextAreaField, PasswordField, BooleanField, validators
 import datetime
 import re
 
@@ -99,7 +99,6 @@ class CreateProvisionForm(FlaskForm):
     
     #TEMPLATE DROPDOWN
     templates = merakiapi.gettemplates(apikey, organizationid)
-    print(templates)
     cleantemplates = []
     for template in templates:
         for key, value in template.items():
@@ -168,6 +167,106 @@ class MilesForm(FlaskForm):
     #HTML FIELDS
     queryField = StringField('Query:&nbsp;&nbsp;', [validators.InputRequired()])
     submitField = SubmitField('Submit')
+    
+class SSIDForm(FlaskForm):
+
+    #NETWORK DROPDOWN
+    networks = merakiapi.getnetworklist(apikey, organizationid)
+    cleannetworks = []
+    for network in networks:
+        for key, value in network.items():
+            if key == 'id':
+                net_id = value
+            elif key == 'name':
+                net_name = value
+            else:
+                continue
+        cleannetworks.append([net_id,net_name])
+    cleannetworks.sort(key=lambda x:x[1])
+    cleannetworks.insert(0, [None, '* Choose...'])
+    networkField = SelectField(u'Network Name', choices = cleannetworks)
+
+    #ADDRESS FIELD
+    ssidname = StringField('SSID Name:&nbsp;', [validators.Optional()])
+    ssidenabled = SelectField('Enabled:&nbsp;', choices=[('enabled', 'Enabled'), ('disabled', 'Disabled')])
+    ssidpsk = PasswordField('Pre-Shared Key:&nbsp;', [validators.Optional()])
+    ssidvlanid = StringField('VLAN ID:&nbsp;', [validators.Optional()])
+    ssidipassignment = SelectField('IP Assignment Mode:&nbsp;', choices=[('Bridge mode', 'Bridge Mode'), ('NAT mode', 'NAT Mode'), ('Layer 3 roaming', 'Layer 3 Roaming')])
+    
+    submitField = SubmitField('Submit')
+    
+class PSKForm(FlaskForm):
+
+    #NETWORK DROPDOWN
+    networks = merakiapi.getnetworklist(apikey, organizationid)
+    cleannetworks = []
+    for network in networks:
+        for key, value in network.items():
+            if key == 'id':
+                net_id = value
+            elif key == 'name':
+                net_name = value
+            else:
+                continue
+        cleannetworks.append([net_id,net_name])
+    cleannetworks.sort(key=lambda x:x[1])
+    cleannetworks.insert(0, [None, '* Choose...'])
+    networkField = SelectField(u'Network Name', choices = cleannetworks)
+
+    #ADDRESS FIELD
+    pskname = StringField('PSK Group Name:&nbsp;', [validators.Optional()])
+    pskkey = PasswordField('Key:&nbsp;', [validators.Optional()])
+    pskvlanid = StringField('VLAN ID:&nbsp;', [validators.Optional()])
+    
+    submitField = SubmitField('Submit')
+    
+class BulkForm(FlaskForm):
+
+    #TAG DROPDOWN
+    networks = merakiapi.getnetworklist(apikey, organizationid)
+    tags = []
+    tagchoices = []
+    hubchoices = []
+    networktypes = ['combined', 'appliance']
+    for network in networks:
+        if ('combined' in network['type']) or ('appliance' in network['type']):
+            hubchoices.append([network['id'],network['name']])
+        if network['tags'] == '':
+            continue
+        else:
+            temptags = str(network['tags']).split(' ')
+            for tag in temptags:
+                if (tag.strip() not in tags) and ('None' not in tag.strip()):
+                    tags.append(tag.strip())
+                    tagchoices.append([tag.strip(), tag.strip()])
+    
+    hubchoices.sort(key=lambda x:x[1])
+    hubchoices.insert(0, ['none', '* Choose...'])
+    
+    tagchoices.sort(key=lambda x:x[1])
+    tagField = SelectField(u'Network Tag to Apply Changes to: ', choices = tagchoices)
+
+    #IPS
+    setips = BooleanField('IPS:&nbsp')
+    ipsmode = SelectField('Mode:&nbsp;', choices=[('disabled', 'Disabled'), ('detection', 'Detection'), ('prevention', 'Prevention')])
+    ipsrules = SelectField('Rule Set:&nbsp;', choices=[('connectivity', 'Connectivity'), ('balanced', 'Balanced'), ('security', 'Security')])
+    
+    #VPN
+    setvpn = BooleanField('VPN Hub Config:&nbsp')
+    hub1 = SelectField('1:&nbsp;', choices=hubchoices)
+    default1 = BooleanField('Default Route?:&nbsp')
+    hub2 = SelectField('2:&nbsp;', choices=hubchoices)
+    default2 = BooleanField('Default Route?:&nbsp')
+    hub3 = SelectField('3:&nbsp;', choices=hubchoices)
+    default3 = BooleanField('Default Route?:&nbsp')
+    
+    #PSK
+    setpsk = BooleanField('SSID PSK:&nbsp')
+    ssidnum = SelectField('SSID Number:&nbsp;', choices=[('0','1'), ('1','2'), ('2','3'), ('3','4'), ('4','5')])
+    ssidpsk = PasswordField('PSK:&nbsp;', [validators.Optional()])
+    
+    submitField = SubmitField('Submit')
+
 
 #MAIN PROGRAM
 app = Flask(__name__)
@@ -182,7 +281,6 @@ def provision():
         postNames = []
         
         postNetwork = form.networkField.data
-        print(postNetwork)
         
         #BUILD ARRAY OF SERIAL NUMBERS FROM FORM
         postSerials.append(form.serialField1.data)
@@ -573,6 +671,134 @@ def miles():
             flash(message)
         return redirect('/submit')
     return render_template('miles.html', title='Meraki Miles', form=form)
+    
+@app.route('/ssid', methods=['GET', 'POST'])
+def ssidupdate():
+    form = SSIDForm()
+    if form.validate_on_submit():
+        message = []
+        
+        ssidnum = '6'
+        name = form.ssidname.data
+        if form.ssidenabled.data == 'enabled':
+            enabled = 'true'
+        else:
+            enabled = 'false'
+        authmode = 'psk'
+        encryptionmode = 'wpa'
+        if len(form.ssidpsk.data) == 0:
+            psk = None
+        else:
+            psk = form.ssidpsk.data
+        ipassignmentmode = form.ssidipassignment.data
+        vlan = form.ssidvlanid.data
+        
+        postNetwork = form.networkField.data
+        print(postNetwork)
+        
+        result = merakiapi.updatessid(apikey, postNetwork, ssidnum, name, enabled, authmode, encryptionmode, ipassignmentmode, psk, vlan, suppressprint=False)
+        
+        if result == None:
+            netname = merakiapi.getnetworkdetail(apikey, postNetwork)
+            message = Markup('SSID Successfully updated for Network: <strong>{}</strong>'.format(netname['name']))
+        else:
+            message = result             
+
+        #SEND MESSAGE TO SUBMIT PAGE
+        flash(message)
+        return redirect('/submit')
+    return render_template('ssid.html', title='Meraki SSID Provisioning', form=form)
+    
+@app.route('/psk', methods=['GET', 'POST'])
+def pskgroups():
+    form = PSKForm()
+    if form.validate_on_submit():   
+          
+        message = "This form is a placeholder until PSK Groups is publicly available."
+        
+        #SEND MESSAGE TO SUBMIT PAGE
+        flash(message)
+        return redirect('/submit')
+    return render_template('psk.html', title='Meraki PSK Groups', form=form)
+    
+@app.route('/bulk', methods=['GET', 'POST'])
+def bulkupdate():
+    form = BulkForm()
+    if form.validate_on_submit():
+        message = []
+        
+        allnetworkstochange = []
+        mxnetworkstochange = []
+        mrnetworkstochange = []
+        networks = merakiapi.getnetworklist(apikey, organizationid)
+        
+        for network in networks:
+            mxnetworktypes = ['combined', 'appliance']
+            mrnetworktypes = ['combined', 'wireless']
+            if (network['tags'] == ''):
+                continue
+            else:
+                temptags = str(network['tags']).split(' ')
+                for tag in temptags:
+                    if tag.strip() == form.tagField.data:
+                        allnetworkstochange.append(network['id'])
+                        if any(x in network['type'] for x in mxnetworktypes):
+                            mxnetworkstochange.append(network['id'])
+                        if any(x in network['type'] for x in mrnetworktypes):
+                            mrnetworkstochange.append(network['id'])
+                        continue
+        
+        #SET IPS
+        if form.setips.data == True:
+            for network in mxnetworkstochange:
+                netname = merakiapi.getnetworkdetail(apikey, network)
+                print("CHANGING IPS SETTINGS FOR NETWORK: {}".format(netname['name']))
+                if form.ipsmode.data == 'disabled':
+                    result = merakiapi.updateintrusion(apikey, network, mode=form.ipsmode.data)
+                else:
+                    result = merakiapi.updateintrusion(apikey, network, mode=form.ipsmode.data, idsRulesets=form.ipsrules.data)
+                if result == None:
+                    message.append('IPS settings successfully updated for Network: <strong>{}</strong>'.format(netname['name']))
+                else:
+                    message.append(result) 
+        
+        ###FINISH VPN            
+        if form.setvpn.data == True:
+            hubnets = []
+            defaults = []
+            if 'none' not in form.hub1.data:
+                hubnets.append(form.hub1.data)
+                defaults.insert(0, form.default1.data)
+                if 'none' not in form.hub2.data:
+                    hubnets.append(form.hub2.data)
+                    defaults.insert(1, form.default2.data)
+                    if 'none' not in form.hub3.data:
+                        hubnets.append(form.hub3.data)
+                        defaultsinsert(2, form.default3.data)
+            for network in mxnetworkstochange:
+                vpnsettings = merakiapi.getvpnsettings(apikey, network)
+                print(vpnsettings)
+                if 'subnets' in vpnsettings:
+                    merakiapi.updatevpnsettings(apikey, network, mode='spoke', subnets=vpnsettings['subnets'], hubnetworks=hubnets, defaultroute=defaults)
+                else:
+                    merakiapi.updatevpnsettings(apikey, network, mode='spoke', hubnetworks=hubnets, defaultroute=defaults)
+                
+        #SET SSID PSK
+        if form.setpsk.data == True:
+            for network in mrnetworkstochange:
+                ssid = merakiapi.getssiddetail(apikey, network, form.ssidnum.data)
+                result = merakiapi.updatessid(apikey, network, form.ssidnum.data, ssid['name'], ssid['enabled'], ssid['authMode'], ssid['encryptionMode'], ssid['ipAssignmentMode'], form.ssidpsk.data)
+        
+                if result == None:
+                    message = Markup('SSID Successfully updated for Network: <strong>{}</strong>'.format(network))
+                else:
+                    message = result             
+
+
+        #SEND MESSAGE TO SUBMIT PAGE
+        flash(message)
+        return redirect('/submit')
+    return render_template('bulk.html', title='Meraki Bulk Changes', form=form)
 
 @app.route('/submit')
 def submit():
