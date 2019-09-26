@@ -1871,6 +1871,33 @@ def updatenetwork(apikey, networkid, name, tz, tags, suppressprint=False):
     #
     result = __returnhandler(dashboard.status_code, dashboard.text, calltype, suppressprint)
     return result
+    
+
+# Update intrusion settings for a network
+# https://api.meraki.com/api_docs#update-a-network
+def updateintrusion(apikey, networkid, mode=None, idsRulesets=None, suppressprint=False):
+
+    calltype = 'Intrusion'
+    puturl = '{0}/networks/{1}/security/intrusionSettings'.format(str(base_url), str(networkid))
+    headers = {
+        'x-cisco-meraki-api-key': format(str(apikey)),
+        'Content-Type': 'application/json'
+    }
+
+    putdata = {}
+
+    if mode:
+        putdata['mode'] = mode
+
+    if idsRulesets:
+        putdata['idsRulesets'] = idsRulesets
+
+    dashboard = requests.put(puturl, data=json.dumps(putdata), headers=headers)
+    #
+    # Call return handler function to parse Dashboard response
+    #
+    result = __returnhandler(dashboard.status_code, dashboard.text, calltype, suppressprint)
+    return result
 
 
 # Create a network
@@ -1996,8 +2023,11 @@ def updatevpnsettings(apikey, networkid, mode='none', subnets=None, usevpn=None,
     else:
         hubmodes = []
 
-    __comparelist(subnets, usevpn)
-    vpnsubnets = list(zip(subnets, usevpn))
+    if subnets is not None and usevpn is not None:
+        __comparelist(subnets, usevpn)
+        vpnsubnets = list(zip(subnets, usevpn))
+    else:
+        vpnsubnets = []
 
     hubs = []
     for h, d in hubmodes:
@@ -2310,6 +2340,31 @@ def getorginventory(apikey, orgid, suppressprint=False):
     calltype = 'Inventory'
 
     geturl = '{0}/organizations/{1}/inventory'.format(str(base_url), str(orgid))
+    headers = {
+        'x-cisco-meraki-api-key': format(str(apikey)),
+        'Content-Type': 'application/json'
+    }
+    dashboard = requests.get(geturl, headers=headers)
+    #
+    # Call return handler function to parse Dashboard response
+    #
+    result = __returnhandler(dashboard.status_code, dashboard.text, calltype, suppressprint)
+    return result
+    
+# Return the devices for an organization
+# https://api.meraki.com/api_docs#return-the-inventory-for-an-organization
+def getorgdevices(apikey, orgid, suppressprint=False):
+    """
+    Args:
+        apikey: User's Meraki API Key
+        orgid: OrganizationId for operation to be performed against
+        suppressprint: Suppress any print output from function (Default: False)
+    Returns: JSON formatted string of organization inventory
+    """
+    __hasorgaccess(apikey, orgid)
+    calltype = 'Devices'
+
+    geturl = '{0}/organizations/{1}/devices'.format(str(base_url), str(orgid))
     headers = {
         'x-cisco-meraki-api-key': format(str(apikey)),
         'Content-Type': 'application/json'
@@ -3252,7 +3307,7 @@ def getssiddetail(apikey, networkid, ssidnum, suppressprint=False):
 
 # Update the attributes of an SSID
 # https://api.meraki.com/api_docs#update-the-attributes-of-an-ssid
-def updatessid(apikey, networkid, ssidnum, name, enabled, authmode, encryptionmode, psk, suppressprint=False):
+def updatessid(apikey, networkid, ssidnum, name, enabled, authmode, encryptionmode, ipassignmentmode, psk=None, vlan=None, suppressprint=False):
 
     calltype = 'SSID'
     puturl = '{0}/networks/{1}/ssids/{2}'.format(str(base_url), str(networkid), str(ssidnum))
@@ -3296,7 +3351,14 @@ def updatessid(apikey, networkid, ssidnum, name, enabled, authmode, encryptionmo
         raise ValueError("If encryption mode is wpa, the psk must be a minimum of 8 characters")
     elif psk:
         putdata['psk'] = str(psk)
-
+        
+    putdata['ipAssignmentMode'] = str(ipassignmentmode)
+    
+    if vlan:
+        putdata['useVlanTagging'] = True
+        putdata['defaultVlanId'] = str(vlan)
+    print('PUTDATA: '.format(putdata))
+    
     dashboard = requests.put(puturl, data=json.dumps(putdata), headers=headers)
     #
     # Call return handler function to parse Dashboard response
