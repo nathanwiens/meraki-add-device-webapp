@@ -3,7 +3,7 @@ Web App to allow users to add Meraki Devices to Meraki Networks
 
 INSTALL AND RUN INSTRUCTIONS
 
-1. Open the add_device_webapp.py file and change the 'apikey' and 'organizationid' variables to match your Meraki Organization
+1. Open the config.py file and change the 'apikey' and 'organizationid' variables to match your Meraki Organization
 
 2. Create a Python Virtual Environment and install the required dependencies
 ```
