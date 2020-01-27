@@ -1299,6 +1299,46 @@ def updateclientpolicy(apikey, networkid, clientmac, policy, policyid=None, supp
     result = __returnhandler(dashboard.status_code, dashboard.text, calltype, suppressprint)
     return result
 
+# Create a Group Policy for IPSK with a VLAN
+def createipskgrouppolicy(apikey, networkid, vlan, suppressprint=False):
+    calltype = 'SSID'
+    posturl = '{0}/networks/{1}/groupPolicies'.format(str(base_url), str(networkid))
+    headers = {
+        'x-cisco-meraki-api-key': format(str(apikey)),
+        'Content-Type': 'application/json'
+    }
+    
+    postdata = {
+      "name": "PSK VLAN {}".format(vlan),
+      "vlanTagging": {
+        "settings": "custom",
+        "vlanId": vlan
+      }
+    }
+    
+    dashboard = requests.post(posturl, data=json.dumps(postdata), headers=headers)
+    result = __returnhandler(dashboard.status_code, dashboard.text, calltype, suppressprint)
+    return result
+    
+# Create an identity PSK
+def createipsk(apikey, networkid, ssid, pskname, pskkey, grouppolicyid, suppressprint=False):
+    calltype = 'SSID'
+    posturl = '{0}/networks/{1}/ssids/{2}/identityPsks'.format(str(base_url), str(networkid), str(ssid))
+    headers = {
+        'x-cisco-meraki-api-key': format(str(apikey)),
+        'Content-Type': 'application/json'
+    }
+    
+    postdata = {
+      "name": pskname,
+      "passphrase": pskkey,
+      "groupPolicyId": grouppolicyid
+    }
+    
+    dashboard = requests.post(posturl, data=json.dumps(postdata), headers=headers)
+    result = __returnhandler(dashboard.status_code, dashboard.text, calltype, suppressprint)
+    return result
+
 
 # Return the splash authorization for a client, for each SSID they've associated with through splash.
 # https://api.meraki.com/api_docs#return-the-splash-authorization-for-a-client-for-each-ssid-theyve-associated-with-through-splash
@@ -1310,7 +1350,7 @@ def getclientsplash(apikey, networkid, clientmac, suppressprint=False):
         'Content-Type': 'application/json'
     }
     dashboard = requests.get(geturl, headers=headers)
-    result = __returnhandler(dashboard.status_code, dashboard.text, calltype, suppressprint)
+    result = dashboard.text
     return result
 
 
@@ -3357,7 +3397,7 @@ def updatessid(apikey, networkid, ssidnum, name, enabled, authmode, encryptionmo
     if vlan:
         putdata['useVlanTagging'] = True
         putdata['defaultVlanId'] = str(vlan)
-    print('PUTDATA: '.format(putdata))
+    #print('PUTDATA: '.format(putdata))
     
     dashboard = requests.put(puturl, data=json.dumps(putdata), headers=headers)
     #

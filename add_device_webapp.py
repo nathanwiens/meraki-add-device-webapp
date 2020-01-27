@@ -42,11 +42,64 @@ from flask import Flask, render_template, redirect, flash, Markup
 from flask_wtf import FlaskForm
 from wtforms import StringField, SelectField, SubmitField, TextAreaField, PasswordField, BooleanField, validators
 import datetime
-import re
+import re, sys
 
 #CHANGE THESE TO MATCH DESIRED MERAKI ORGANIZATION
 apikey = config.apikey
 organizationid = config.organizationid
+
+#NETWORK DROPDOWN
+networks = merakiapi.getnetworklist(apikey, organizationid)
+cleannetworks = []
+for network in networks:
+    for key, value in network.items():
+        if key == 'id':
+            net_id = value
+        elif key == 'name':
+            net_name = value
+        else:
+            continue
+    cleannetworks.append([net_id,net_name])
+cleannetworks.sort(key=lambda x:x[1])
+cleannetworks.insert(0, [None, '* Choose...'])
+
+#TEMPLATE DROPDOWN
+templates = merakiapi.gettemplates(apikey, organizationid)
+cleantemplates = []
+for template in templates:
+    for key, value in template.items():
+        if key == 'id':
+            template_id = value
+        elif key == 'name':
+            template_name = value
+        else:
+            continue
+    cleantemplates.append([template_id,template_name])
+cleantemplates.sort(key=lambda x:x[1])
+cleantemplates.insert(0, ["", '* No Template'])
+
+#TAG DROPDOWN
+networks = merakiapi.getnetworklist(apikey, organizationid)
+tags = []
+tagchoices = []
+hubchoices = []
+networktypes = ['combined', 'appliance']
+for network in networks:
+    if ('combined' in network['type']) or ('appliance' in network['type']):
+        hubchoices.append([network['id'],network['name']])
+    if network['tags'] == '':
+        continue
+    else:
+        temptags = str(network['tags']).split(' ')
+        for tag in temptags:
+            if (tag.strip() not in tags) and ('None' not in tag.strip()):
+                tags.append(tag.strip())
+                tagchoices.append([tag.strip(), tag.strip()])
+
+hubchoices.sort(key=lambda x:x[1])
+hubchoices.insert(0, ['none', '* Choose...'])
+
+tagchoices.sort(key=lambda x:x[1])
 
 #BUILD FORM FIELDS AND POPULATE DROPDOWN 
 class AddProvisionForm(FlaskForm):
@@ -72,23 +125,9 @@ class AddProvisionForm(FlaskForm):
     nameField7 = StringField('Device Name:&nbsp;&nbsp;', [validators.Optional()])
     nameField8 = StringField('Device Name:&nbsp;&nbsp;', [validators.Optional()])
     
-    submitField = SubmitField('Submit')
-      
-    #NETWORK DROPDOWN
-    networks = merakiapi.getnetworklist(apikey, organizationid)
-    cleannetworks = []
-    for network in networks:
-        for key, value in network.items():
-            if key == 'id':
-                net_id = value
-            elif key == 'name':
-                net_name = value
-            else:
-                continue
-        cleannetworks.append([net_id,net_name])
-    cleannetworks.sort(key=lambda x:x[1])
-    cleannetworks.insert(0, [None, '* Choose...'])
     networkField = SelectField(u'Network Name', choices = cleannetworks)
+    
+    submitField = SubmitField('Submit')
 
 class CreateProvisionForm(FlaskForm):
     #ADDRESS FIELD
@@ -97,20 +136,6 @@ class CreateProvisionForm(FlaskForm):
     #NETWORK CREATE FIELD
     networkTextField = StringField('New Network Name*', [validators.InputRequired()])
     
-    #TEMPLATE DROPDOWN
-    templates = merakiapi.gettemplates(apikey, organizationid)
-    cleantemplates = []
-    for template in templates:
-        for key, value in template.items():
-            if key == 'id':
-                template_id = value
-            elif key == 'name':
-                template_name = value
-            else:
-                continue
-        cleantemplates.append([template_id,template_name])
-    cleantemplates.sort(key=lambda x:x[1])
-    cleantemplates.insert(0, ["", '* No Template'])
     templateField = SelectField(u'Template to bind to*', choices = cleantemplates)
 
     #SERIAL NUMBER FIELDS
@@ -135,20 +160,6 @@ class CreateProvisionForm(FlaskForm):
     submitField = SubmitField('Submit')
 
 class ReplaceDevice(FlaskForm):
-	#NETWORK DROPDOWN
-    networks = merakiapi.getnetworklist(apikey, organizationid)
-    cleannetworks = []
-    for network in networks:
-        for key, value in network.items():
-            if key == 'id':
-                net_id = value
-            elif key == 'name':
-                net_name = value
-            else:
-                continue
-        cleannetworks.append([net_id,net_name])
-    cleannetworks.sort(key=lambda x:x[1])
-    cleannetworks.insert(0, [None, '* Choose...'])
     networkField = SelectField(u'Network Name', choices = cleannetworks)
 	
 	#SERIAL NUMBER FIELDS
@@ -170,20 +181,6 @@ class MilesForm(FlaskForm):
     
 class SSIDForm(FlaskForm):
 
-    #NETWORK DROPDOWN
-    networks = merakiapi.getnetworklist(apikey, organizationid)
-    cleannetworks = []
-    for network in networks:
-        for key, value in network.items():
-            if key == 'id':
-                net_id = value
-            elif key == 'name':
-                net_name = value
-            else:
-                continue
-        cleannetworks.append([net_id,net_name])
-    cleannetworks.sort(key=lambda x:x[1])
-    cleannetworks.insert(0, [None, '* Choose...'])
     networkField = SelectField(u'Network Name', choices = cleannetworks)
 
     #ADDRESS FIELD
@@ -196,21 +193,6 @@ class SSIDForm(FlaskForm):
     submitField = SubmitField('Submit')
     
 class PSKForm(FlaskForm):
-
-    #NETWORK DROPDOWN
-    networks = merakiapi.getnetworklist(apikey, organizationid)
-    cleannetworks = []
-    for network in networks:
-        for key, value in network.items():
-            if key == 'id':
-                net_id = value
-            elif key == 'name':
-                net_name = value
-            else:
-                continue
-        cleannetworks.append([net_id,net_name])
-    cleannetworks.sort(key=lambda x:x[1])
-    cleannetworks.insert(0, [None, '* Choose...'])
     networkField = SelectField(u'Network Name', choices = cleannetworks)
 
     #ADDRESS FIELD
@@ -222,28 +204,6 @@ class PSKForm(FlaskForm):
     
 class BulkForm(FlaskForm):
 
-    #TAG DROPDOWN
-    networks = merakiapi.getnetworklist(apikey, organizationid)
-    tags = []
-    tagchoices = []
-    hubchoices = []
-    networktypes = ['combined', 'appliance']
-    for network in networks:
-        if ('combined' in network['type']) or ('appliance' in network['type']):
-            hubchoices.append([network['id'],network['name']])
-        if network['tags'] == '':
-            continue
-        else:
-            temptags = str(network['tags']).split(' ')
-            for tag in temptags:
-                if (tag.strip() not in tags) and ('None' not in tag.strip()):
-                    tags.append(tag.strip())
-                    tagchoices.append([tag.strip(), tag.strip()])
-    
-    hubchoices.sort(key=lambda x:x[1])
-    hubchoices.insert(0, ['none', '* Choose...'])
-    
-    tagchoices.sort(key=lambda x:x[1])
     tagField = SelectField(u'Network Tag to Apply Changes to: ', choices = tagchoices)
 
     #IPS
@@ -714,7 +674,24 @@ def pskgroups():
     form = PSKForm()
     if form.validate_on_submit():   
           
-        message = "This form is a placeholder until PSK Groups is publicly available."
+        message = []
+        
+        ssidnum = '5'
+        
+        postNetwork = form.networkField.data
+        print(postNetwork)
+        
+        pskname = form.pskname.data
+        pskkey = form.pskkey.data
+        pskvlanid = form.pskvlanid.data
+        
+        result = merakiapi.createipskgrouppolicy(apikey, postNetwork, pskvlanid)
+        groupPolicyId = result['groupPolicyId']
+        
+        result = merakiapi.createipsk(apikey, postNetwork, ssidnum, pskname, pskkey, groupPolicyId, suppressprint=False)
+        
+        netname = merakiapi.getnetworkdetail(apikey, postNetwork)
+        message = Markup('PSK successfully created for Network: <strong>{}</strong>. PSK: <strong>{}</strong>, Key: <strong>{}</strong>, VLAN: <strong>{}</strong>'.format(netname['name'], pskname, pskkey, pskvlanid))
         
         #SEND MESSAGE TO SUBMIT PAGE
         flash(message)
@@ -799,6 +776,10 @@ def bulkupdate():
         flash(message)
         return redirect('/submit')
     return render_template('bulk.html', title='Meraki Bulk Changes', form=form)
+
+@app.route('/ml')
+def ml():
+   return render_template('ml.html')
 
 @app.route('/submit')
 def submit():
